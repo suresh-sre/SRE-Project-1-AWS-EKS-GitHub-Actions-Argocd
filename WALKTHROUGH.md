@@ -36,7 +36,7 @@ Created complete Terraform infrastructure with modular design:
   - Container image repositories
   - Scan-on-push enabled
   - Lifecycle policies (retain last 30 images)
-  - Encryption at rest
+  - Encryption at rest -
 
 ### 2. CI/CD Pipeline (GitHub Actions)
 
