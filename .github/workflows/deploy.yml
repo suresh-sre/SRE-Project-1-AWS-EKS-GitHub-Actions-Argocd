@@ -1,0 +1,83 @@
+name: Deploy to ArgoCD
+
+on:
+  push:
+    branches: [ dev, qa, prod ]
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: 
+      name: ${{ github.ref_name }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Determine environment
+      id: env
+      run: |
+        if [ "${{ github.ref }}" == "refs/heads/dev" ]; then
+          echo "environment=dev" >> $GITHUB_OUTPUT
+          echo "argocd_app=cicd-app-dev" >> $GITHUB_OUTPUT
+        elif [ "${{ github.ref }}" == "refs/heads/qa" ]; then
+          echo "environment=qa" >> $GITHUB_OUTPUT
+          echo "argocd_app=cicd-app-qa" >> $GITHUB_OUTPUT
+        elif [ "${{ github.ref }}" == "refs/heads/prod" ]; then
+          echo "environment=prod" >> $GITHUB_OUTPUT
+          echo "argocd_app=cicd-app-prod" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Update kubeconfig
+      run: |
+        aws eks update-kubeconfig --region ${{ env.AWS_REGION }} --name cicd-pipeline-${{ steps.env.outputs.environment }}
+
+    - name: Validate Kubernetes manifests
+      run: |
+        scripts/validate-k8s-manifests.sh
+
+    - name: Check EKS cluster status
+      run: |
+        scripts/check-eks-cluster.sh
+
+    - name: Install ArgoCD CLI
+      run: |
+        curl -sSL -o argocd https://github.com/argoproj/argo-cd/releases/latest/download/argocd-linux-amd64
+        chmod +x argocd
+        sudo mv argocd /usr/local/bin/
+
+    - name: Login to ArgoCD
+      run: |
+        argocd login ${{ secrets.ARGOCD_SERVER }} \
+          --username admin \
+          --password ${{ secrets.ARGOCD_TOKEN }} \
+          --insecure
+
+    - name: Sync ArgoCD application
+      run: |
+        argocd app sync ${{ steps.env.outputs.argocd_app }} \
+          --revision ${{ github.sha }} \
+          --wait \
+          --timeout 300s
+
+    - name: Verify deployment
+      run: |
+        kubectl rollout status deployment/cicd-app -n ${{ steps.env.outputs.environment }} --timeout=5m
+        kubectl get pods -n ${{ steps.env.outputs.environment }}
+
+    - name: Health check
+      run: |
+        echo "Waiting for application to be ready..."
+        sleep 30
+        kubectl logs -n ${{ steps.env.outputs.environment }} -l app=cicd-app --tail=50

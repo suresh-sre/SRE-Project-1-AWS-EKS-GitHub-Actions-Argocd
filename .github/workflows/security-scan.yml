@@ -1,0 +1,61 @@
+name: Security Scan
+
+on:
+  push:
+    branches: [ dev, qa, prod ]
+  pull_request:
+    branches: [ dev, qa, prod ]
+
+env:
+  AWS_REGION: us-east-1
+  ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-1.amazonaws.com
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up JDK 11
+      uses: actions/setup-java@v3
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+
+    - name: Run Snyk SAST scan
+      uses: snyk/actions/maven@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        args: --severity-threshold=high
+
+    - name: Build Docker image
+      run: |
+        docker build -t ${{ env.ECR_REGISTRY }}/cicd-app:${{ github.sha }} .
+        docker tag ${{ env.ECR_REGISTRY }}/cicd-app:${{ github.sha }} ${{ env.ECR_REGISTRY }}/cicd-app:latest
+
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v2
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+
+    - name: Login to Amazon ECR
+      id: login-ecr
+      uses: aws-actions/amazon-ecr-login@v1
+
+    - name: Run Snyk container scan
+      uses: snyk/actions/docker@master
+      env:
+        SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
+      with:
+        image: ${{ env.ECR_REGISTRY }}/cicd-app:${{ github.sha }}
+        args: --severity-threshold=high
+
+    - name: Push image to ECR
+      run: |
+        docker push ${{ env.ECR_REGISTRY }}/cicd-app:${{ github.sha }}
+        docker push ${{ env.ECR_REGISTRY }}/cicd-app:latest
