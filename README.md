@@ -2,62 +2,62 @@
 
 A production-ready CI/CD pipeline for deploying applications to AWS EKS with comprehensive security scanning, policy enforcement, and GitOps-based deployment using ArgoCD and GitHub Actions.
 
-## 📋 Table of Contents
+##  Table of Contents
 
 - [Overview](#overview)
 - [Architecture](#architecture)
 - [Pipeline Stages](#pipeline-stages)
 - [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
-- [Jenkins Setup](#jenkins-setup)
-- [Infrastructure Setup](#infrastructure-setup)
+- [Infrastructure Modules](#infrastructure-modules)
 - [Pipeline Configuration](#pipeline-configuration)
 - [Deployment Workflow](#deployment-workflow)
 - [Security & Compliance](#security--compliance)
 - [Troubleshooting](#troubleshooting)
+- [Project Structure](#project-structure)
 - [Contributing](#contributing)
 
-## 🎯 Overview
+##  Overview
 
 This project implements a complete DevOps CI/CD pipeline using **GitHub Actions** that addresses common challenges in AWS, Kubernetes (EKS), Terraform, Docker, and container deployments. The pipeline automates the entire software delivery lifecycle from code commit to production deployment.
 
 ### Key Features
 
-- ✅ **Infrastructure as Code**: Complete Terraform modules for AWS EKS, VPC, and ECR
-- ✅ **GitHub Actions CI/CD**: Automated workflows for build, test, and deploy
-- ✅ **Security Scanning**: Snyk SAST and container image vulnerability scanning
-- ✅ **Policy Enforcement**: Kyverno policies for Kubernetes security and compliance
-- ✅ **GitOps Deployment**: ArgoCD for declarative, automated deployments
-- ✅ **Multi-Environment**: Separate configurations for dev, qa, and prod
-- ✅ **Production-Ready**: Health checks, resource limits, autoscaling, and monitoring
+-  **Infrastructure as Code**: Complete Terraform modules for AWS EKS, VPC, and ECR
+-  **GitHub Actions CI/CD**: Automated workflows for build, test, and deploy
+-  **Security Scanning**: Snyk SAST and container image vulnerability scanning
+-  **Policy Enforcement**: Kyverno policies for Kubernetes security and compliance
+-  **GitOps Deployment**: ArgoCD for declarative, automated deployments
+-  **Multi-Environment**: Separate configurations for dev, qa, and prod
+-  **Production-Ready**: Health checks, resource limits, autoscaling, and monitoring
 
-## 🏗️ Architecture
+##  Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                  GitHub Actions CI/CD Pipeline                  │
-├─────────────────────────────────────────────────────────────────┤
-│ Step 1: Initialize → Environment Validation                    │
-│ Step 2: Platform Check → EKS Cluster Health                   │
-│ Step 3: Validate → Dockerfile, K8s, Kyverno, Snyk SAST       │
-│ Step 4: Build → Maven Artifact Generation                     │
-│ Step 5: Package → Docker Image + Helm Chart → ECR            │
-│ Step 6: Container Scan → Snyk Vulnerability Scan              │
-│ Step 7: Promote → Update Config Repo → ArgoCD Deployment     │
-│ Step 8: Approval Gates → Manual Approval (QA/Prod)           │
-│ Step 9: Verify → ArgoCD Sync Status                          │
-└─────────────────────────────────────────────────────────────────┘
-                              ↓
-┌─────────────────────────────────────────────────────────────────┐
-│                      AWS Infrastructure                          │
-├─────────────────────────────────────────────────────────────────┤
-│  VPC → EKS Cluster → Worker Nodes                               │
-│  ECR → Container Images + Helm Charts                           │
-│  ArgoCD → Config Repo → Automated Deployments                  │
-└─────────────────────────────────────────────────────────────────┘
-```
+``
 
-## 🚀 Pipeline Stages
+                  GitHub Actions CI/CD Pipeline                  
+
+ Step 1: Initialize  Environment Validation                    
+ Step 2: Platform Check  EKS Cluster Health                   
+ Step 3: Validate  Dockerfile, K8s, Kyverno, Snyk SAST       
+ Step 4: Build  Maven Artifact Generation                     
+ Step 5: Package  Docker Image + Helm Chart  ECR            
+ Step 6: Container Scan  Snyk Vulnerability Scan              
+ Step 7: Promote  Update Config Repo  ArgoCD Deployment     
+ Step 8: Approval Gates  Manual Approval (QA/Prod)           
+ Step 9: Verify  ArgoCD Sync Status                          
+
+                              
+
+                      AWS Infrastructure                          
+
+  VPC  EKS Cluster  Worker Nodes                               
+  ECR  Container Images + Helm Charts                           
+  ArgoCD  Config Repo  Automated Deployments                  
+
+``
+
+##  Pipeline Stages
 
 ### Step 1: Initialize
 
@@ -80,10 +80,10 @@ Validates that the target EKS cluster is operational before deployment.
 
 ### Step 3: Validate (Parallel)
 
-**Validate Dockerfile** - Hadolint linting  
-**Validate Kubernetes** - kubeconform manifest validation  
-**Validate Kyverno Policies** - Security policy testing  
-**SAST Security Scan** - Snyk source code vulnerability scanning  
+- **Validate Dockerfile** - Hadolint linting
+- **Validate Kubernetes** - kubeconform manifest validation
+- **Validate Kyverno Policies** - Security policy testing
+- **SAST Security Scan** - Snyk source code vulnerability scanning
 
 **Script:** [scripts/validate-k8s-manifests.sh](scripts/validate-k8s-manifests.sh)
 
@@ -121,7 +121,7 @@ Updates GitOps config repository for ArgoCD deployment.
 
 Checks ArgoCD application sync status after deployment.
 
-## 📦 Prerequisites
+##  Prerequisites
 
 ### Required Tools
 
@@ -142,9 +142,9 @@ Checks ArgoCD application sync status after deployment.
 
 ### GitHub Actions Secrets Configuration
 
-Set these in **Settings → Secrets and Variables → Actions**:
+Set these in **Settings  Secrets and Variables  Actions**:
 
-```
+``
 AWS_ACCESS_KEY_ID          # AWS IAM access key
 AWS_SECRET_ACCESS_KEY      # AWS IAM secret key
 AWS_ACCOUNT_ID             # 12-digit AWS account ID
@@ -152,36 +152,25 @@ SNYK_TOKEN                 # Snyk API token
 ARGOCD_SERVER              # ArgoCD server URL
 ARGOCD_TOKEN               # ArgoCD authentication token
 GIT_TOKEN                  # GitHub personal access token
-```
+``
 
-## 🚀 Quick Start
+##  Quick Start
 
 ### 1. Clone the Repository
 
-```bash
+``ash
 git clone https://github.com/suresh-subramanian2013/SRE-Project-1-AWS-EKS-GitHub-Actions-Argocd.git
 cd SRE-Project-1-AWS-EKS-GitHub-Actions-Argocd
-```
+``
 
 ### 2. Configure GitHub Secrets
 
-1. Go to **Settings → Secrets and Variables → Actions**
+1. Go to **Settings  Secrets and Variables  Actions**
 2. Add the required secrets (see Prerequisites section)
 
-### 3. Set Up Workflow Files
+### 3. Deploy Infrastructure
 
-The GitHub Actions workflows are in `.github/workflows/`:
-
-```bash
-.github/workflows/
-├── build.yml              # Build and test workflow
-├── security-scan.yml      # Security scanning
-└── deploy.yml             # Deployment workflow
-```
-
-### 4. Deploy Infrastructure
-
-```bash
+``ash
 cd terraform
 
 # Initialize Terraform
@@ -198,11 +187,11 @@ terraform apply -var="environment=dev"
 
 # Configure kubectl
 aws eks update-kubeconfig --region us-east-1 --name cicd-pipeline-dev
-```
+``
 
-### 5. Install ArgoCD
+### 4. Install ArgoCD
 
-```bash
+``ash
 # Create ArgoCD namespace
 kubectl create namespace argocd
 
@@ -214,37 +203,37 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.pas
 
 # Port forward to access UI
 kubectl port-forward svc/argocd-server -n argocd 8080:443
-```
+``
 
-### 6. Install Kyverno
+### 5. Install Kyverno
 
-```bash
+``ash
 # Install Kyverno
 kubectl create -f https://github.com/kyverno/kyverno/releases/download/v1.10.0/install.yaml
 
 # Apply custom policies
 kubectl apply -f kyverno-policies/
-```
+``
 
-### 7. Deploy ArgoCD Applications
+### 6. Deploy ArgoCD Applications
 
-```bash
+``ash
 # Apply ArgoCD application definitions
 kubectl apply -f argocd/application-dev.yaml
 kubectl apply -f argocd/application-qa.yaml
 kubectl apply -f argocd/application-prod.yaml
-```
+``
 
-### 8. Trigger First Build
+### 7. Trigger First Build
 
-Push code to `dev`, `qa`, or `prod` branch. GitHub Actions automatically triggers the pipeline:
+Push code to dev, qa, or prod branch. GitHub Actions automatically triggers the pipeline:
 
-```bash
+``ash
 git checkout dev
 git push origin dev
-```
+``
 
-## 📋 Infrastructure Modules
+##  Infrastructure Modules
 
 ### Terraform Modules
 
@@ -275,7 +264,7 @@ Creates ECR repositories with:
 
 Edit [terraform/variables.tf](terraform/variables.tf):
 
-```hcl
+``hcl
 variable "environment" {
   default = "dev"
 }
@@ -296,13 +285,13 @@ variable "node_groups" {
     }
   }
 }
-```
+``
 
-## ⚙️ Pipeline Configuration
+##  Pipeline Configuration
 
 ### GitHub Actions Workflow Files
 
-Located in `.github/workflows/`:
+Located in .github/workflows/:
 
 - **build.yml** - Build, test, and compile application
 - **security-scan.yml** - Run Snyk SAST and container scans
@@ -310,38 +299,41 @@ Located in `.github/workflows/`:
 
 ### Environment Variables
 
-Set these in **Settings → Variables**:
+Set these in **Settings  Variables**:
 
 | Variable | Description |
 |----------|-------------|
-| `AWS_REGION` | AWS region (e.g., us-east-1) |
-| `EKS_CLUSTER_NAME` | EKS cluster name |
-| `ECR_REGISTRY` | ECR registry URL |
-| `ARGOCD_SYNC_TIMEOUT` | ArgoCD sync timeout in seconds |
+| AWS_REGION | AWS region (e.g., us-east-1) |
+| EKS_CLUSTER_NAME | EKS cluster name |
+| ECR_REGISTRY | ECR registry URL |
+| ARGOCD_SYNC_TIMEOUT | ArgoCD sync timeout in seconds |
 
-## 🔄 Deployment Workflow
+##  Deployment Workflow
 
 ### Development Environment
-- **Trigger:** Push to `dev` branch
-- **Build:** Automatic via Jenkins webhook
+
+- **Trigger:** Push to dev branch
+- **Build:** Automatic via GitHub Actions
 - **Deployment:** Automatic to EKS dev cluster
 - **ArgoCD Sync:** Automatic
 
 ### QA Environment
-- **Trigger:** Push to `qa` branch
-- **Build:** Automatic via Jenkins webhook
+
+- **Trigger:** Push to qa branch
+- **Build:** Automatic via GitHub Actions
 - **Deployment:** Manual approval required
 - **Tests:** Available for QA team
 - **ArgoCD Sync:** Automatic after approval
 
 ### Production Environment
-- **Trigger:** Push to `prod` branch
-- **Build:** Automatic via Jenkins webhook
+
+- **Trigger:** Push to prod branch
+- **Build:** Automatic via GitHub Actions
 - **Deployment:** Manual approval required (senior review)
 - **ArgoCD Sync:** Manual (for additional safety)
 - **Rollback:** Via ArgoCD UI
 
-## 🔒 Security & Compliance
+##  Security & Compliance
 
 ### Kyverno Policies
 
@@ -358,108 +350,104 @@ Set these in **Settings → Variables**:
 
 ### Docker Security
 
-The [`Dockerfile`](Dockerfile) implements:
+The [Dockerfile](Dockerfile) implements:
 - Non-root user execution
 - Multi-stage builds
 - Minimal base image (JRE slim)
 - Health checks
 - No unnecessary privileges
 
-## 🐛 Troubleshooting
+##  Troubleshooting
 
 ### Common Issues
 
-#### Jenkins Build Won't Start
-- Verify Jenkins credentials are configured correctly
-- Check GitHub webhook is pointing to correct Jenkins URL
-- Verify Jenkins user has repository access
-
 #### EKS Cluster Not Ready
-```bash
+
+``ash
 aws eks describe-cluster --name cicd-pipeline-dev --region us-east-1
-```
+``
 
 #### Worker Nodes Not Ready
-```bash
+
+``ash
 kubectl get nodes
 kubectl describe node <node-name>
-```
+``
 
 #### Dockerfile Validation Failed
-Update `Dockerfile` to pin package versions:
-```dockerfile
+
+Update Dockerfile to pin package versions:
+
+``dockerfile
 RUN apt-get update && apt-get install -y curl=7.68.0-1 && rm -rf /var/lib/apt/lists/*
-```
+``
 
 #### Snyk Scan Failures
-```bash
+
+``ash
 mvn versions:display-dependency-updates
-```
+``
 
 #### ArgoCD Not Syncing
-```bash
+
+``ash
 argocd app sync cicd-demo-app-dev
-```
+``
 
 For detailed troubleshooting, see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
 
-## 📁 Project Structure
+##  Project Structure
 
-```
+``
 sre-project-1/
-├── .github/workflows/                 # GitHub Actions workflows
-│   ├── build.yml                      # Build and test workflow
-│   ├── security-scan.yml              # Security scanning
-│   └── deploy.yml                     # Deployment workflow
-├── terraform/                         # Infrastructure as Code
-│   ├── main.tf
-│   ├── variables.tf
-│   ├── outputs.tf
-│   ├── backend.tf
-│   └── modules/
-│       ├── vpc/
-│       ├── eks/
-│       └── ecr/
-├── helm-chart/                        # Kubernetes Helm chart
-│   ├── Chart.yaml
-│   ├── values.yaml
-│   └── templates/
-├── kyverno-policies/                  # Security policies
-├── argocd/                            # ArgoCD applications
-├── scripts/                           # Helper scripts
-├── src/                               # Sample Java app
-├── Dockerfile                         # Application container image
-├── pom.xml                            # Maven config
-└── README.md                          # This file
-```
+ .github/workflows/                 # GitHub Actions workflows
+    build.yml                      # Build and test workflow
+    security-scan.yml              # Security scanning
+    deploy.yml                     # Deployment workflow
+ terraform/                         # Infrastructure as Code
+    main.tf
+    variables.tf
+    outputs.tf
+    backend.tf
+    modules/
+        vpc/
+        eks/
+        ecr/
+ helm-chart/                        # Kubernetes Helm chart
+    Chart.yaml
+    values.yaml
+    templates/
+ kyverno-policies/                  # Security policies
+ argocd/                            # ArgoCD applications
+ scripts/                           # Helper scripts
+ src/                               # Sample Java app
+ Dockerfile                         # Application container image
+ pom.xml                            # Maven config
+ README.md                          # This file
+``
 
-## 🤝 Contributing
+##  Contributing
 
 Contributions welcome! Please:
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add feature'`)
-4. Push branch (`git push origin feature/amazing-feature`)
+2. Create a feature branch (\git checkout -b feature/amazing-feature\)
+3. Commit changes (\git commit -m 'Add feature'\)
+4. Push branch (\git push origin feature/amazing-feature\)
 5. Open a Pull Request
 
-## 📝 License
+##  License
 
 This project is licensed under the MIT License.
 
-## 📧 Support
+##  Support
 
 For questions or issues:
 - Create an issue in the repository
-- Check [jenkins/JENKINS_SETUP.md](jenkins/JENKINS_SETUP.md) for Jenkins-specific help
 - Contact: devops@example.com
 
 ---
 
-**Built with ❤️ by the DevOps Team**
+**Built with  by the DevOps Team**
+
 **GitHub Actions CI/CD Edition**
-#   S R E - P r o j e c t - 1 - D e v S e c O p s - A W S - E K S - J e n k i n s - A r g o c d 
- 
- #   S R E - P r o j e c t - 2 - D e v S e c O p s - A W S - E K S - J e n k i n s - A r g o c d 
- 
- 
