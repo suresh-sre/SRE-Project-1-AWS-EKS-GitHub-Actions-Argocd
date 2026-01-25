@@ -1,4 +1,4 @@
-# DevOps CI/CD Pipeline with AWS EKS
+# DevOps CI/CD Pipeline with AWS EKS and Jenkins
 
 A production-ready CI/CD pipeline for deploying applications to AWS EKS with comprehensive security scanning, policy enforcement, and GitOps-based deployment using ArgoCD.
 
@@ -6,9 +6,10 @@ A production-ready CI/CD pipeline for deploying applications to AWS EKS with com
 
 - [Overview](#overview)
 - [Architecture](#architecture)
-- [Pipeline Jobs](#pipeline-jobs)
+- [Pipeline Stages](#pipeline-stages)
 - [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
+- [Jenkins Setup](#jenkins-setup)
 - [Infrastructure Setup](#infrastructure-setup)
 - [Pipeline Configuration](#pipeline-configuration)
 - [Deployment Workflow](#deployment-workflow)
@@ -18,12 +19,12 @@ A production-ready CI/CD pipeline for deploying applications to AWS EKS with com
 
 ## 🎯 Overview
 
-This project implements a complete DevOps CI/CD pipeline that addresses common challenges in AWS, Kubernetes (EKS), Terraform, Docker, and container deployments. The pipeline automates the entire software delivery lifecycle from code commit to production deployment.
+This project implements a complete DevOps CI/CD pipeline using **Jenkins** that addresses common challenges in AWS, Kubernetes (EKS), Terraform, Docker, and container deployments. The pipeline automates the entire software delivery lifecycle from code commit to production deployment.
 
 ### Key Features
 
 - ✅ **Infrastructure as Code**: Complete Terraform modules for AWS EKS, VPC, and ECR
-- ✅ **GitHub Actions CI/CD Pipeline**: Automated multi-stage pipeline with security scanning
+- ✅ **Jenkins CI/CD Pipeline**: Declarative pipeline with security scanning and approvals
 - ✅ **Security Scanning**: Snyk SAST and container image vulnerability scanning
 - ✅ **Policy Enforcement**: Kyverno policies for Kubernetes security and compliance
 - ✅ **GitOps Deployment**: ArgoCD for declarative, automated deployments
@@ -34,14 +35,17 @@ This project implements a complete DevOps CI/CD pipeline that addresses common c
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                   GitHub Actions CI/CD Pipeline                  │
+│                      Jenkins CI/CD Pipeline                      │
 ├─────────────────────────────────────────────────────────────────┤
-│ Job 1: Platform Check → EKS Cluster Health Validation           │
-│ Job 2: Validate → Dockerfile, K8s, Kyverno, Snyk SAST          │
-│ Job 3: Build → Maven Artifact Generation                        │
-│ Job 4: Package → Docker Image + Helm Chart → ECR               │
-│ Job 5: Scan → Snyk Container Vulnerability Scan                │
-│ Job 6: Promote → Update Config Repo → ArgoCD Deployment        │
+│ Stage 1: Initialize → Environment Validation                    │
+│ Stage 2: Platform Check → EKS Cluster Health                   │
+│ Stage 3: Validate → Dockerfile, K8s, Kyverno, Snyk SAST       │
+│ Stage 4: Build → Maven Artifact Generation                     │
+│ Stage 5: Package → Docker Image + Helm Chart → ECR            │
+│ Stage 6: Container Scan → Snyk Vulnerability Scan              │
+│ Stage 7: Promote → Update Config Repo → ArgoCD Deployment     │
+│ Stage 8: Approval Gates → Manual Approval (QA/Prod)           │
+│ Stage 9: Verify → ArgoCD Sync Status                          │
 └─────────────────────────────────────────────────────────────────┘
                               ↓
 ┌─────────────────────────────────────────────────────────────────┐
@@ -53,9 +57,17 @@ This project implements a complete DevOps CI/CD pipeline that addresses common c
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-## 🚀 Pipeline Jobs
+## 🚀 Pipeline Stages
 
-### Job 1: Platform Check
+### Stage 1: Initialize
+
+Validates environment branch matching and sets up build metadata.
+
+**Checks:**
+- Branch matches target environment (dev/qa/prod)
+- Git metadata collection (commit, branch, timestamp)
+
+### Stage 2: Platform Check
 
 Validates that the target EKS cluster is operational before deployment.
 
@@ -64,45 +76,50 @@ Validates that the target EKS cluster is operational before deployment.
 - Worker nodes exist and are in Ready state
 - Critical system pods are running (kube-system namespace)
 
-**Script:** [`scripts/check-eks-cluster.sh`](scripts/check-eks-cluster.sh)
+**Script:** [scripts/check-eks-cluster.sh](scripts/check-eks-cluster.sh)
 
-### Job 2-5: Validation
+### Stage 3: Validate (Parallel)
 
-**Job 2: Validate Dockerfile** - Hadolint linting  
-**Job 3: Validate Kubernetes** - Kubeconform manifest validation  
-**Job 4: Validate Kyverno Policies** - Security policy testing  
-**Job 5: SAST Snyk** - Code vulnerability scanning  
+**Validate Dockerfile** - Hadolint linting  
+**Validate Kubernetes** - kubeconform manifest validation  
+**Validate Kyverno Policies** - Security policy testing  
+**SAST Security Scan** - Snyk source code vulnerability scanning  
 
-**Script:** [`scripts/validate-k8s-manifests.sh`](scripts/validate-k8s-manifests.sh)
+**Script:** [scripts/validate-k8s-manifests.sh](scripts/validate-k8s-manifests.sh)
 
-### Job 6: Build Maven
+### Stage 4: Build
 
-Compiles Java application and generates JAR/WAR artifacts.
+Compiles Java application with Maven and generates JAR/WAR artifacts.
 
-### Job 7-8: Package
+### Stage 5: Package (Parallel)
 
-**Job 7: Package Docker**
-- Build Docker image from [`Dockerfile`](Dockerfile)
+**Package Docker Image**
+- Build Docker image from [Dockerfile](Dockerfile)
 - Tag with commit SHA and environment
 - Push to AWS ECR
 
-**Job 8: Package Helm**
+**Package Helm Chart**
 - Package Helm chart with version metadata
 - Push to AWS ECR
 
-### Job 9: Container Scan
+### Stage 6: Container Security Scan
 
-Snyk scans built image for security vulnerabilities and CVEs.
+Snyk scans built Docker image for security vulnerabilities and CVEs.
 
-### Job 10: Promote to ArgoCD
+### Stage 7: Promote to ArgoCD
 
 Updates GitOps config repository for ArgoCD deployment.
 
-**Script:** [`scripts/update-config-repo.sh`](scripts/update-config-repo.sh)
+**Script:** [scripts/update-config-repo.sh](scripts/update-config-repo.sh)
 
-### Job 11: Approval Gates
+### Stage 8: Approval Gates
 
-Manual approvals for QA and Production deployments.
+- **QA**: Manual approval required before deployment
+- **Production**: Manual approval required before deployment
+
+### Stage 9: Verify ArgoCD Deployment
+
+Checks ArgoCD application sync status after deployment.
 
 ## 📦 Prerequisites
 
@@ -115,26 +132,28 @@ Manual approvals for QA and Production deployments.
 - **Docker** >= 24.0
 - **Maven** >= 3.8
 - **Git** >= 2.0
+- **Jenkins** >= 2.361 (LTS)
 
 ### Required Accounts & Credentials
 
 - AWS account with EKS, ECR, VPC permissions
-- GitHub account with Actions enabled
+- Git repository (GitHub, GitLab, Gitea, etc.)
 - Snyk account and API token
 - ArgoCD installation on target clusters
 
-### GitHub Secrets Configuration
+### Jenkins Credentials Configuration
 
-Set these in **Settings → Secrets and variables → Actions**:
+Set these in **Manage Jenkins → Manage Credentials**:
 
 ```
-AWS_ACCOUNT_ID           # Your 12-digit AWS account ID
-AWS_ACCESS_KEY_ID        # IAM access key
-AWS_SECRET_ACCESS_KEY    # IAM secret key
-SNYK_TOKEN              # Snyk API token
-JENKINS_URL             # (Optional) Jenkins server URL
-JENKINS_USER            # (Optional) Jenkins username
-JENKINS_TOKEN           # (Optional) Jenkins API token
+aws-access-key-id           # AWS IAM access key
+aws-secret-access-key       # AWS IAM secret key
+aws-account-id              # 12-digit AWS account ID
+git-repository-url          # Git repository URL
+git-credentials             # Git username/token
+snyk-api-token             # Snyk API token
+argocd-server              # ArgoCD server URL
+argocd-token               # ArgoCD authentication token
 ```
 
 ## 🚀 Quick Start
@@ -142,11 +161,121 @@ JENKINS_TOKEN           # (Optional) Jenkins API token
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/suresh-subramanian2013/SRE-Project-1-AWS-EKS-Argocd.git
-cd SRE-Project-1-AWS-EKS-Argocd
+git clone https://github.com/your-org/sre-project-2.git
+cd sre-project-2
 ```
 
-### 2. Deploy Infrastructure
+### 2. Deploy Jenkins
+
+#### Option A: Docker Compose
+
+```bash
+cd jenkins
+
+# Create .env file with credentials
+cat > .env << EOF
+AWS_ACCOUNT_ID=123456789012
+AWS_ACCESS_KEY_ID=YOUR_AWS_KEY
+AWS_SECRET_ACCESS_KEY=YOUR_AWS_SECRET
+SNYK_TOKEN=YOUR_SNYK_TOKEN
+ARGOCD_SERVER=https://argocd.example.com
+ARGOCD_TOKEN=YOUR_ARGOCD_TOKEN
+GIT_USERNAME=your-username
+GIT_PASSWORD=your-token
+DB_PASSWORD=secure-password
+SMTP_HOST=mail.example.com
+SMTP_USERNAME=smtp-user
+SMTP_PASSWORD=smtp-password
+EOF
+
+# Start Jenkins
+docker-compose up -d
+```
+
+#### Option B: Kubernetes Installation
+
+```bash
+# Create namespace
+kubectl create namespace jenkins
+
+# Add Jenkins Helm repository
+helm repo add jenkinsci https://charts.jenkins.io
+helm repo update
+
+# Install Jenkins
+helm install jenkins jenkinsci/jenkins -f jenkins/helm-values.yaml -n jenkins
+```
+
+#### Option C: Traditional Installation
+
+```bash
+# For Ubuntu/Debian
+sudo wget -O /etc/yum.repos.d/jenkins.repo https://pkg.jenkins.io/redhat-stable/jenkins.repo
+sudo rpm --import https://pkg.jenkins.io/redhat-stable/jenkins.io.key
+sudo apt-get update
+sudo apt-get install jenkins
+```
+
+### 3. Configure Jenkins
+
+1. Access Jenkins at `http://localhost:8080`
+2. Retrieve initial admin password:
+   ```bash
+   docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword
+   ```
+3. Complete setup wizard
+4. Install recommended plugins
+5. Add credentials (see Jenkins Credentials Configuration above)
+
+For detailed setup instructions, see [jenkins/JENKINS_SETUP.md](jenkins/JENKINS_SETUP.md)
+
+## 🏗️ Jenkins Setup
+
+### Create Pipeline Job
+
+1. Click "New Item"
+2. Enter job name: `cicd-pipeline`
+3. Select "Pipeline"
+4. Click "OK"
+
+### Configure Pipeline
+
+1. **General Settings**
+   - Build history: Keep last 30 builds
+   - Build timeout: 1 hour
+
+2. **Pipeline Configuration**
+   - Definition: **Pipeline script from SCM**
+   - SCM: **Git**
+   - Repository URL: `https://github.com/your-org/sre-project-2.git`
+   - Branch: `*/dev` (or create separate jobs for qa/prod)
+   - Script Path: `Jenkinsfile`
+
+3. **Build Triggers**
+   - GitHub hook trigger for GITScm polling
+   - Poll SCM: `H H(2-3) * * *` (daily)
+
+4. **Parameters**
+   - Choice: ENVIRONMENT (dev, qa, prod)
+   - Boolean: SKIP_TESTS
+   - Boolean: SKIP_SECURITY_SCAN
+
+### Webhook Configuration
+
+For automatic builds on code push:
+
+1. In GitHub repository → Settings → Webhooks
+2. Add webhook:
+   - Payload URL: `http://jenkins-url:8080/github-webhook/`
+   - Content type: `application/json`
+   - Events: Push events
+   - Active: ✓
+
+For detailed Jenkins configuration, see [jenkins/JENKINS_SETUP.md](jenkins/JENKINS_SETUP.md)
+
+## 🏗️ Infrastructure Setup
+
+### 4. Deploy Infrastructure
 
 ```bash
 cd terraform
@@ -167,7 +296,7 @@ terraform apply -var="environment=dev"
 aws eks update-kubeconfig --region us-east-1 --name cicd-pipeline-dev
 ```
 
-### 3. Install ArgoCD
+### 5. Install ArgoCD
 
 ```bash
 # Create ArgoCD namespace
@@ -183,7 +312,7 @@ kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.pas
 kubectl port-forward svc/argocd-server -n argocd 8080:443
 ```
 
-### 4. Install Kyverno
+### 6. Install Kyverno
 
 ```bash
 # Install Kyverno
@@ -193,7 +322,7 @@ kubectl create -f https://github.com/kyverno/kyverno/releases/download/v1.10.0/i
 kubectl apply -f kyverno-policies/
 ```
 
-### 5. Deploy ArgoCD Applications
+### 7. Deploy ArgoCD Applications
 
 ```bash
 # Apply ArgoCD application definitions
@@ -202,14 +331,16 @@ kubectl apply -f argocd/application-qa.yaml
 kubectl apply -f argocd/application-prod.yaml
 ```
 
-### 6. Configure GitHub Secrets
+### 8. Trigger First Build
 
-1. Go to repository **Settings → Secrets and variables → Actions**
-2. Add all required secrets (see Prerequisites section)
-3. Push code to `dev`, `qa`, or `prod` branch
-4. Workflow automatically triggers!
+Push code to `dev`, `qa`, or `prod` branch. Jenkins webhook automatically triggers the pipeline:
 
-## 🏗️ Infrastructure Setup
+```bash
+git checkout dev
+git push origin dev
+```
+
+## 📋 Infrastructure Modules
 
 ### Terraform Modules
 
@@ -238,7 +369,7 @@ Creates ECR repositories with:
 
 ### Customization
 
-Edit [`terraform/variables.tf`](terraform/variables.tf):
+Edit [terraform/variables.tf](terraform/variables.tf):
 
 ```hcl
 variable "environment" {
@@ -265,42 +396,46 @@ variable "node_groups" {
 
 ## ⚙️ Pipeline Configuration
 
-### GitHub Actions Secrets
+### Jenkins Parameters
 
-| Secret | Description | Example |
-|--------|-------------|---------|
-| `AWS_ACCOUNT_ID` | AWS account ID | `123456789012` |
-| `AWS_ACCESS_KEY_ID` | AWS access key | `AKIAIOSFODNN7EXAMPLE` |
-| `AWS_SECRET_ACCESS_KEY` | AWS secret key | `wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY` |
-| `SNYK_TOKEN` | Snyk API token | `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` |
-| `JENKINS_URL` | Jenkins server | `https://jenkins.example.com` |
-| `JENKINS_USER` | Jenkins user | `ci-user` |
-| `JENKINS_TOKEN` | Jenkins API token | `your-token` |
+When triggering a Jenkins build, provide these parameters:
+
+| Parameter | Type | Description | Default |
+|-----------|------|-------------|---------|
+| `ENVIRONMENT` | Choice | Target deployment environment | dev |
+| `SKIP_TESTS` | Boolean | Skip Maven unit tests | false |
+| `SKIP_SECURITY_SCAN` | Boolean | Skip Snyk security scanning | false |
 
 ### Customize Pipeline
 
-Edit [`.github/workflows/cicd-pipeline.yml`](.github/workflows/cicd-pipeline.yml) to:
+Edit [Jenkinsfile](Jenkinsfile) to:
 - Add custom validation steps
 - Modify security thresholds
 - Add integration tests
 - Configure notifications
+- Change stage behavior
 
 ## 🔄 Deployment Workflow
 
 ### Development Environment
 - **Trigger:** Push to `dev` branch
-- **Deployment:** Automatic
+- **Build:** Automatic via Jenkins webhook
+- **Deployment:** Automatic to EKS dev cluster
 - **ArgoCD Sync:** Automatic
 
 ### QA Environment
 - **Trigger:** Push to `qa` branch
+- **Build:** Automatic via Jenkins webhook
 - **Deployment:** Manual approval required
-- **Tests:** Jenkins integration
+- **Tests:** Available for QA team
+- **ArgoCD Sync:** Automatic after approval
 
 ### Production Environment
 - **Trigger:** Push to `prod` branch
-- **Deployment:** Manual approval required
-- **ArgoCD Sync:** Manual (for safety)
+- **Build:** Automatic via Jenkins webhook
+- **Deployment:** Manual approval required (senior review)
+- **ArgoCD Sync:** Manual (for additional safety)
+- **Rollback:** Via ArgoCD UI
 
 ## 🔒 Security & Compliance
 
@@ -312,9 +447,10 @@ Edit [`.github/workflows/cicd-pipeline.yml`](.github/workflows/cicd-pipeline.yml
 
 ### Snyk Security Scanning
 
-- **SAST (Job 5):** Source code vulnerability scanning
-- **Container Scan (Job 9):** Docker image CVE scanning
-- **Threshold:** High severity blocks pipeline
+- **SAST Stage:** Source code vulnerability scanning
+- **Container Scan Stage:** Docker image CVE scanning
+- **Threshold:** High severity findings block pipeline
+- **Monitor:** Snyk continuously monitors deployed artifacts
 
 ### Docker Security
 
@@ -328,6 +464,11 @@ The [`Dockerfile`](Dockerfile) implements:
 ## 🐛 Troubleshooting
 
 ### Common Issues
+
+#### Jenkins Build Won't Start
+- Verify Jenkins credentials are configured correctly
+- Check GitHub webhook is pointing to correct Jenkins URL
+- Verify Jenkins user has repository access
 
 #### EKS Cluster Not Ready
 ```bash
@@ -356,14 +497,18 @@ mvn versions:display-dependency-updates
 argocd app sync cicd-demo-app-dev
 ```
 
-For detailed troubleshooting, see [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md)
+For detailed troubleshooting, see [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md)
 
 ## 📁 Project Structure
 
 ```
-sre-project-1/
-├── .github/workflows/              # GitHub Actions
-│   └── cicd-pipeline.yml          # Main CI/CD workflow
+sre-project-2/
+├── jenkins/                        # Jenkins Configuration
+│   ├── Dockerfile                 # Jenkins Docker image
+│   ├── docker-compose.yml         # Jenkins setup
+│   ├── jenkins.yaml               # Jenkins Configuration as Code
+│   ├── plugins.txt                # Required plugins
+│   └── JENKINS_SETUP.md           # Setup documentation
 ├── terraform/                      # Infrastructure as Code
 │   ├── main.tf
 │   ├── variables.tf
@@ -381,7 +526,8 @@ sre-project-1/
 ├── argocd/                         # ArgoCD applications
 ├── scripts/                        # Helper scripts
 ├── src/                            # Sample Java app
-├── Dockerfile                      # Container image
+├── Dockerfile                      # Application container image
+├── Jenkinsfile                     # Jenkins pipeline definition
 ├── pom.xml                         # Maven config
 └── README.md                       # This file
 ```
@@ -404,8 +550,13 @@ This project is licensed under the MIT License.
 
 For questions or issues:
 - Create an issue in the repository
+- Check [jenkins/JENKINS_SETUP.md](jenkins/JENKINS_SETUP.md) for Jenkins-specific help
 - Contact: devops@example.com
 
 ---
 
 **Built with ❤️ by the DevOps Team**
+**Jenkins CI/CD Edition**
+#   S R E - P r o j e c t - 1 - D e v S e c O p s - A W S - E K S - J e n k i n s - A r g o c d  
+ #   S R E - P r o j e c t - 2 - D e v S e c O p s - A W S - E K S - J e n k i n s - A r g o c d  
+ 

@@ -1,0 +1,124 @@
+# Jenkins Plugins List for CI/CD Pipeline
+# Copy to $JENKINS_HOME/plugins.txt and run: jenkins-plugin-cli -f plugins.txt
+
+# Core Pipeline Plugins
+pipeline:latest
+workflow-multibranch:latest
+workflow-step-api:latest
+workflow-cps:latest
+workflow-api:latest
+workflow-job:latest
+workflow-basic-steps:latest
+workflow-durable-task-step:latest
+workflow-aggregator:latest
+
+# Git & Version Control
+git:latest
+github:latest
+github-api:latest
+github-branch-source:latest
+gitea:latest
+
+# UI & Visualization
+blueocean:latest
+blueocean-dashboard:latest
+blueocean-pipeline-editor:latest
+blueocean-github-pipeline:latest
+blueocean-git-pipeline:latest
+blueocean-commons:latest
+blueocean-core-js:latest
+blueocean-web:latest
+blueocean-rest:latest
+blueocean-rest-impl:latest
+blueocean-autofavorite:latest
+blueocean-events:latest
+blueocean-personalization:latest
+blueocean-pipeline-api-impl:latest
+
+# Build Tools
+maven-plugin:latest
+timestamper:latest
+log-parser:latest
+ansicolor:latest
+
+# Docker & Container
+docker-plugin:latest
+docker-commons:latest
+docker-workflow:latest
+docker-build-step:latest
+
+# Kubernetes Integration
+kubernetes:latest
+kubernetes-cli:latest
+kubernetes-credentials:latest
+kubernetes-credentials-provider:latest
+
+# Cloud & Infrastructure
+aws-codecommit-trigger:latest
+aws-credentials:latest
+aws-codecommit-plugin:latest
+aws-parameter-store:latest
+aws-sns:latest
+aws-steps:latest
+cloud-stats:latest
+
+# Security & Scanning
+snyk-security-scanner:latest
+sonar:latest
+dependency-check-jenkins-plugin:latest
+owasp-dependency-check:latest
+HashiCorp-Vault:latest
+
+# Artifact Management
+artifactory:latest
+nexus-artifact-uploader:latest
+
+# Notifications
+email-ext:latest
+mailer:latest
+slack:latest
+google-chat-notification:latest
+webhook-step:latest
+
+# Credentials & Secrets
+credentials:latest
+credentials-binding:latest
+plain-credentials:latest
+ssh-credentials:latest
+jcasc:latest
+jcasc-groovy:latest
+
+# Monitoring & Logging
+audit-trail:latest
+simple-travis-ci:latest
+metrics:latest
+performance:latest
+junit:latest
+pubsub-light:latest
+
+# Approval & Access Control
+promoted-builds:latest
+build-name-updater:latest
+build-step-renamer:latest
+conditional-buildstep:latest
+parameterized-trigger:latest
+
+# Utility Plugins
+groovy-postbuild:latest
+envinject:latest
+envinject-api:latest
+groovy:latest
+script-security:latest
+active-directory:latest
+ldap:latest
+pam-auth:latest
+matrix-auth:latest
+role-strategy:latest
+
+# Miscellaneous
+nodejs:latest
+ant:latest
+javadoc:latest
+cobertura:latest
+htmlpublisher:latest
+warnings-next-gen:latest

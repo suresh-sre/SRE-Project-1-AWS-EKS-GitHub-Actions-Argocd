@@ -1,30 +1,49 @@
-# DevOps CI/CD Pipeline - Project Walkthrough
+# DevOps CI/CD Pipeline with Jenkins - Project Walkthrough
 
 ## 📋 Project Summary
 
-Successfully created a production-ready DevOps CI/CD pipeline for deploying applications to AWS EKS with comprehensive security scanning, policy enforcement, and GitOps-based deployment using ArgoCD.
+Successfully created a production-ready DevOps CI/CD pipeline using **Jenkins** for deploying applications to AWS EKS with comprehensive security scanning, policy enforcement, and GitOps-based deployment using ArgoCD.
 
 ## ✅ What Was Created
 
-### 1. Infrastructure as Code (Terraform)
+### 1. Jenkins CI/CD Pipeline
+
+Created comprehensive Jenkins pipeline infrastructure:
+
+#### Jenkinsfile
+- [Jenkinsfile](Jenkinsfile) - Declarative Jenkins pipeline
+  - 9 stages for complete delivery lifecycle
+  - Parallel validation and packaging stages
+  - Environment-based deployment logic
+  - Approval gates for QA and Production
+  - Comprehensive error handling and cleanup
+
+#### Jenkins Configuration
+- [jenkins/JENKINS_SETUP.md](jenkins/JENKINS_SETUP.md) - Complete setup and configuration guide
+- [jenkins/Dockerfile](jenkins/Dockerfile) - Custom Jenkins Docker image with all required tools
+- [jenkins/docker-compose.yml](jenkins/docker-compose.yml) - Docker Compose for easy Jenkins deployment
+- [jenkins/jenkins.yaml](jenkins/jenkins.yaml) - Jenkins Configuration as Code (JCasC)
+- [jenkins/plugins.txt](jenkins/plugins.txt) - Required Jenkins plugins list
+
+### 2. Infrastructure as Code (Terraform)
 
 Created complete Terraform infrastructure with modular design:
 
 #### Root Configuration
-- [`terraform/main.tf`](file:///d:/learning/sre-project-1/terraform/main.tf) - Orchestrates all modules
-- [`terraform/variables.tf`](file:///d:/learning/sre-project-1/terraform/variables.tf) - Configurable inputs
-- [`terraform/outputs.tf`](file:///d:/learning/sre-project-1/terraform/outputs.tf) - Cluster and ECR outputs
-- [`terraform/backend.tf`](file:///d:/learning/sre-project-1/terraform/backend.tf) - S3 state management
+- [terraform/main.tf](terraform/main.tf) - Orchestrates all modules
+- [terraform/variables.tf](terraform/variables.tf) - Configurable inputs
+- [terraform/outputs.tf](terraform/outputs.tf) - Cluster and ECR outputs
+- [terraform/backend.tf](terraform/backend.tf) - S3 state management
 
 #### VPC Module
-- [`terraform/modules/vpc/main.tf`](file:///d:/learning/sre-project-1/terraform/modules/vpc/main.tf)
+- [terraform/modules/vpc/main.tf](terraform/modules/vpc/main.tf)
   - 3 public subnets across availability zones
   - 3 private subnets for EKS worker nodes
   - NAT gateways for outbound internet access
   - EKS-specific tags for load balancer provisioning
 
 #### EKS Module
-- [`terraform/modules/eks/main.tf`](file:///d:/learning/sre-project-1/terraform/modules/eks/main.tf)
+- [terraform/modules/eks/main.tf](terraform/modules/eks/main.tf)
   - Managed EKS cluster with version 1.28
   - Managed node groups with autoscaling
   - OIDC provider for IAM Roles for Service Accounts (IRSA)
@@ -32,121 +51,122 @@ Created complete Terraform infrastructure with modular design:
   - CloudWatch logging enabled
 
 #### ECR Module
-- [`terraform/modules/ecr/main.tf`](file:///d:/learning/sre-project-1/terraform/modules/ecr/main.tf)
+- [terraform/modules/ecr/main.tf](terraform/modules/ecr/main.tf)
   - Container image repositories
   - Scan-on-push enabled
   - Lifecycle policies (retain last 30 images)
   - Encryption at rest -
 
-### 2. CI/CD Pipeline (GitHub Actions)
+### 3. Pipeline Stages
 
-Created comprehensive multi-job pipeline in [`.github/workflows/cicd-pipeline.yml`](file:///d:/learning/sre-project-1/.github/workflows/cicd-pipeline.yml):
+#### Stage 1: Initialize
+- Validates environment branch matching
+- Sets up build metadata (commit, branch, timestamp)
 
-#### Job 1: platform-check
+#### Stage 2: Platform Check
 - Validates EKS cluster is ACTIVE
 - Checks worker nodes are Ready
 - Verifies system pods are running
-- Script: [`scripts/check-eks-cluster.sh`](file:///d:/learning/sre-project-1/scripts/check-eks-cluster.sh)
+- Script: [scripts/check-eks-cluster.sh](scripts/check-eks-cluster.sh)
 
-#### Job 2: validate-dockerfile
-- **Dockerfile linting** with Hadolint
+#### Stage 3: Validate (Parallel)
+- **Validate Dockerfile** - Hadolint linting
+- **Validate Kubernetes** - kubeconform manifest validation
+- **Validate Kyverno Policies** - Security policy testing
+- **SAST Security Scan** - Snyk source code scanning
+- Script: [scripts/validate-k8s-manifests.sh](scripts/validate-k8s-manifests.sh)
 
-#### Job 3: validate-kubernetes
-- **Kubernetes manifest validation** with kubeconform
-- Script: [`scripts/validate-k8s-manifests.sh`](file:///d:/learning/sre-project-1/scripts/validate-k8s-manifests.sh)
+#### Stage 4: Build
+- Maven clean package build
+- JAR/WAR artifact generation
+- Unit tests (configurable)
 
-#### Job 4: validate-kyverno-policies
-- **Kyverno policy testing**
+#### Stage 5: Package (Parallel)
+- **Package Docker Image**
+  - Multi-stage Docker build
+  - Image tagging with commit SHA
+  - Push to AWS ECR
+  
+- **Package Helm Chart**
+  - Helm chart packaging
+  - Push to AWS ECR
 
-#### Job 5: sast-snyk
-- **Snyk SAST** for code vulnerabilities
-
-#### Job 6: build-maven
-- Maven build to create JAR/WAR artifacts
-- Caches dependencies for faster builds
-
-#### Job 7: package-docker
-- Multi-stage Docker build
-- Image tagging with commit SHA
-- Push to AWS ECR
-
-#### Job 8: package-helm
-- Helm chart packaging
-- Push to AWS ECR
-
-#### Job 9: scan-container
+#### Stage 6: Container Security Scan
 - Snyk container vulnerability scanning
 - CVE detection
 - Dependency risk analysis
 
-#### Job 10: promote
+#### Stage 7: Promote to ArgoCD
 - Updates GitOps config repository
 - ArgoCD detects and deploys changes
-- Post-deployment validation
-- Jenkins test integration for QA/Prod
-- Script: [`scripts/update-config-repo.sh`](file:///d:/learning/sre-project-1/scripts/update-config-repo.sh)
+- Script: [scripts/update-config-repo.sh](scripts/update-config-repo.sh)
 
-#### Job 11: approval-gate-qa & approval-gate-prod
-- Manual approval gates for QA and Production deployments
+#### Stage 8: Approval Gates
+- **QA**: Manual approval required
+- **Production**: Manual approval required (24-hour timeout)
 
-### 3. Application Components
+#### Stage 9: Verify ArgoCD Deployment
+- Checks ArgoCD application sync status
+- Validates successful deployment
+
+### 4. Application Components
 
 #### Sample Java Application
-- [`src/main/java/com/example/App.java`](file:///d:/learning/sre-project-1/src/main/java/com/example/App.java) - Spring Boot REST API
-- [`src/main/resources/application.properties`](file:///d:/learning/sre-project-1/src/main/resources/application.properties) - Configuration
-- [`pom.xml`](file:///d:/learning/sre-project-1/pom.xml) - Maven build configuration
+- [src/main/java/com/example/App.java](src/main/java/com/example/App.java) - Spring Boot REST API
+- [src/main/resources/application.properties](src/main/resources/application.properties) - Configuration
+- [pom.xml](pom.xml) - Maven build configuration
 
 #### Dockerfile
-- [`Dockerfile`](file:///d:/learning/sre-project-1/Dockerfile)
+- [Dockerfile](Dockerfile)
   - Multi-stage build for optimization
   - Non-root user for security
   - Health checks
   - Optimized JVM settings for containers
 
-### 4. Helm Chart
+### 5. Helm Chart
 
-Complete Helm chart in [`helm-chart/`](file:///d:/learning/sre-project-1/helm-chart/):
+Complete Helm chart in [helm-chart/](helm-chart/):
 
-- [`Chart.yaml`](file:///d:/learning/sre-project-1/helm-chart/Chart.yaml) - Chart metadata
-- [`values.yaml`](file:///d:/learning/sre-project-1/helm-chart/values.yaml) - Default configuration
-- [`values-dev.yaml`](file:///d:/learning/sre-project-1/helm-chart/values-dev.yaml) - Dev environment
-- [`values-qa.yaml`](file:///d:/learning/sre-project-1/helm-chart/values-qa.yaml) - QA environment
-- [`values-prod.yaml`](file:///d:/learning/sre-project-1/helm-chart/values-prod.yaml) - Production environment
+- [Chart.yaml](helm-chart/Chart.yaml) - Chart metadata
+- [values.yaml](helm-chart/values.yaml) - Default configuration
+- [values-dev.yaml](helm-chart/values-dev.yaml) - Dev environment
+- [values-qa.yaml](helm-chart/values-qa.yaml) - QA environment
+- [values-prod.yaml](helm-chart/values-prod.yaml) - Production environment
 
 #### Templates
-- [`templates/deployment.yaml`](file:///d:/learning/sre-project-1/helm-chart/templates/deployment.yaml) - Kubernetes Deployment
-- [`templates/service.yaml`](file:///d:/learning/sre-project-1/helm-chart/templates/service.yaml) - Service
-- [`templates/ingress.yaml`](file:///d:/learning/sre-project-1/helm-chart/templates/ingress.yaml) - Ingress with TLS
-- [`templates/configmap.yaml`](file:///d:/learning/sre-project-1/helm-chart/templates/configmap.yaml) - ConfigMap
-- [`templates/serviceaccount.yaml`](file:///d:/learning/sre-project-1/helm-chart/templates/serviceaccount.yaml) - ServiceAccount
-- [`templates/hpa.yaml`](file:///d:/learning/sre-project-1/helm-chart/templates/hpa.yaml) - HorizontalPodAutoscaler
-- [`templates/_helpers.tpl`](file:///d:/learning/sre-project-1/helm-chart/templates/_helpers.tpl) - Template helpers
+- [templates/deployment.yaml](helm-chart/templates/deployment.yaml) - Kubernetes Deployment
+- [templates/service.yaml](helm-chart/templates/service.yaml) - Service
+- [templates/ingress.yaml](helm-chart/templates/ingress.yaml) - Ingress with TLS
+- [templates/configmap.yaml](helm-chart/templates/configmap.yaml) - ConfigMap
+- [templates/serviceaccount.yaml](helm-chart/templates/serviceaccount.yaml) - ServiceAccount
+- [templates/hpa.yaml](helm-chart/templates/hpa.yaml) - HorizontalPodAutoscaler
+- [templates/_helpers.tpl](helm-chart/templates/_helpers.tpl) - Template helpers
 
-### 5. Kyverno Security Policies
+### 6. Kyverno Security Policies
 
-Created 3 cluster policies in [`kyverno-policies/`](file:///d:/learning/sre-project-1/kyverno-policies/):
+Created 3 cluster policies in [kyverno-policies/](kyverno-policies/):
 
-1. [`restrict-privileged-pods.yaml`](file:///d:/learning/sre-project-1/kyverno-policies/restrict-privileged-pods.yaml)
+1. [restrict-privileged-pods.yaml](kyverno-policies/restrict-privileged-pods.yaml)
    - Prevents privileged containers
    - Severity: High
 
-2. [`require-resource-limits.yaml`](file:///d:/learning/sre-project-1/kyverno-policies/require-resource-limits.yaml)
+2. [require-resource-limits.yaml](kyverno-policies/require-resource-limits.yaml)
    - Enforces CPU and memory limits
    - Severity: Medium
 
-3. [`disallow-host-namespaces.yaml`](file:///d:/learning/sre-project-1/kyverno-policies/disallow-host-namespaces.yaml)
+3. [disallow-host-namespaces.yaml](kyverno-policies/disallow-host-namespaces.yaml)
    - Prevents host PID, IPC, and network access
    - Severity: High
 
-### 6. ArgoCD Configurations
+### 7. ArgoCD Configurations
 
-Created ArgoCD Application definitions in [`argocd/`](file:///d:/learning/sre-project-1/argocd/):
+Created ArgoCD Application definitions in [argocd/](argocd/):
 
-- [`application-dev.yaml`](file:///d:/learning/sre-project-1/argocd/application-dev.yaml) - Dev environment (auto-sync)
-- [`application-qa.yaml`](file:///d:/learning/sre-project-1/argocd/application-qa.yaml) - QA environment (auto-sync)
-- [`application-prod.yaml`](file:///d:/learning/sre-project-1/argocd/application-prod.yaml) - Production (manual sync)
+- [application-dev.yaml](argocd/application-dev.yaml) - Dev environment (auto-sync)
+- [application-qa.yaml](argocd/application-qa.yaml) - QA environment (auto-sync)
+- [application-prod.yaml](argocd/application-prod.yaml) - Production (manual sync)
 
-### 7. Documentation
+### 8. Documentation
 
 #### Main README
 - [`README.md`](file:///d:/learning/sre-project-1/README.md)

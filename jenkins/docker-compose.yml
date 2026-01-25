@@ -1,0 +1,108 @@
+version: '3.8'
+
+services:
+  # Jenkins Master
+  jenkins:
+    build:
+      context: .
+      dockerfile: jenkins/Dockerfile
+    container_name: jenkins
+    ports:
+      - "8080:8080"      # Jenkins UI
+      - "50000:50000"    # Jenkins agent port
+    environment:
+      - JENKINS_OPTS=--prefix=/jenkins
+      - JAVA_OPTS=-Xmx2g -Xms2g
+      - CASC_JENKINS_CONFIG=/usr/share/jenkins/ref/jenkins.yaml
+      # AWS Configuration
+      - AWS_DEFAULT_REGION=us-east-1
+      - AWS_ACCOUNT_ID=${AWS_ACCOUNT_ID}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      # Snyk Configuration
+      - SNYK_TOKEN=${SNYK_TOKEN}
+      # ArgoCD Configuration
+      - ARGOCD_SERVER=${ARGOCD_SERVER}
+      - ARGOCD_TOKEN=${ARGOCD_TOKEN}
+      # Git Configuration
+      - GIT_USERNAME=${GIT_USERNAME}
+      - GIT_PASSWORD=${GIT_PASSWORD}
+      - GIT_SSH_KEY=${GIT_SSH_KEY}
+      # SMTP Configuration
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_USERNAME=${SMTP_USERNAME}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      # Slack Configuration (optional)
+      - SLACK_TEAM=${SLACK_TEAM}
+      - SLACK_TOKEN=${SLACK_TOKEN}
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /etc/localtime:/etc/localtime:ro
+      - ./scripts:/var/jenkins_scripts:ro
+    networks:
+      - jenkins
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/jenkins/login"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    labels:
+      - "com.example.description=Jenkins CI/CD Server"
+
+  # Optional: PostgreSQL for Jenkins job storage
+  postgres:
+    image: postgres:13-alpine
+    container_name: jenkins-postgres
+    environment:
+      - POSTGRES_DB=jenkins
+      - POSTGRES_USER=${DB_USER:-jenkins}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - jenkins
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jenkins"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Optional: Docker DinD (Docker in Docker) for agent
+  docker-dind:
+    image: docker:20-dind
+    container_name: docker-dind
+    privileged: true
+    environment:
+      - DOCKER_TLS_CERTDIR=/certs
+    volumes:
+      - docker_certs_ca:/certs/ca
+      - docker_certs_client:/certs/client
+      - docker_data:/var/lib/docker
+    networks:
+      - jenkins
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "docker", "info"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+networks:
+  jenkins:
+    driver: bridge
+
+volumes:
+  jenkins_home:
+    driver: local
+  postgres_data:
+    driver: local
+  docker_certs_ca:
+    driver: local
+  docker_certs_client:
+    driver: local
+  docker_data:
+    driver: local
