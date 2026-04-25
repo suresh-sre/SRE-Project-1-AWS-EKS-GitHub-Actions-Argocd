@@ -9,12 +9,12 @@ spec:
   project: default
   
   source:
-    repoURL: 'git@gitlab.com:your-org/config-repo.git'
-    targetRevision: main
-    path: environments/qa
+    repoURL: 'https://github.com/suresh-sre/SRE-Project-1-AWS-EKS-GitHub-Actions-Argocd.git'
+    targetRevision: qa
+    path: helm-chart
     helm:
       valueFiles:
-        - values.yaml
+        - values-qa.yaml
   
   destination:
     server: 'https://kubernetes.default.svc'
