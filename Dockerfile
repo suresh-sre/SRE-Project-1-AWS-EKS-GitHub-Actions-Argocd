@@ -1,13 +1,13 @@
 # Multi-stage Dockerfile for Java application
 # Stage 1: Build stage (if needed for compilation)
-FROM maven:3.8-openjdk-11-slim AS builder
+FROM maven:3.8-eclipse-temurin-11 AS builder
 WORKDIR /app
 COPY pom.xml .
 COPY src ./src
 RUN mvn clean package -DskipTests
 
 # Stage 2: Runtime stage
-FROM openjdk:11-jre-slim
+FROM eclipse-temurin:11-jre-focal
 
 # Create non-root user for security
 RUN groupadd -r appuser && useradd -r -g appuser appuser
