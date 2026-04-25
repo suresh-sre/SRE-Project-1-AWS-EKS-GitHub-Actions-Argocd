@@ -18,14 +18,16 @@ jobs:
   platform-check:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/qa' || github.ref == 'refs/heads/prod'
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: arn:aws:iam::471112966640:role/GitHubActionsRole
           aws-region: ${{ env.AWS_DEFAULT_REGION }}
 
       - name: Install kubectl
@@ -152,8 +154,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: arn:aws:iam::471112966640:role/GitHubActionsRole
           aws-region: ${{ env.AWS_DEFAULT_REGION }}
 
       - name: Login to Amazon ECR
@@ -185,6 +186,9 @@ jobs:
     needs: package-docker
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/qa' || github.ref == 'refs/heads/prod'
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -196,8 +200,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: arn:aws:iam::471112966640:role/GitHubActionsRole
           aws-region: ${{ env.AWS_DEFAULT_REGION }}
 
       - name: Login to Amazon ECR (Helm)
@@ -218,14 +221,16 @@ jobs:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/qa' || github.ref == 'refs/heads/prod'
     continue-on-error: true
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: arn:aws:iam::471112966640:role/GitHubActionsRole
           aws-region: ${{ env.AWS_DEFAULT_REGION }}
 
       - name: Login to Amazon ECR
@@ -263,6 +268,9 @@ jobs:
     needs: [ scan-container, package-helm ]
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/qa' || github.ref == 'refs/heads/prod'
+    permissions:
+      id-token: write
+      contents: read
     steps:
       - uses: actions/checkout@v4
 
@@ -274,8 +282,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          role-to-assume: arn:aws:iam::471112966640:role/GitHubActionsRole
           aws-region: ${{ env.AWS_DEFAULT_REGION }}
 
       - name: Promote to ${{ github.ref_name }}
@@ -293,12 +300,6 @@ jobs:
           sleep 30
           curl -f http://argocd.example.com/api/v1/applications/${{ github.event.repository.name }}-${{ github.ref_name }} || echo "ArgoCD API check skipped"
 
-      - name: Trigger Jenkins tests (QA only)
-        if: github.ref == 'refs/heads/qa'
-        continue-on-error: true
-        run: |
-          curl -X POST "${{ secrets.JENKINS_URL }}/job/qa-tests/build" \
-            --user "${{ secrets.JENKINS_USER }}:${{ secrets.JENKINS_TOKEN }}" || echo "Jenkins trigger skipped"
 
   # Manual approval gates for QA and Prod
   approval-gate-qa:
