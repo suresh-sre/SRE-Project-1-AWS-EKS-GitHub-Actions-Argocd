@@ -32,8 +32,11 @@ if [ ! -f "$CONFIG_FILE" ]; then
     exit 1
 fi
 
+# Determine correct ECR repository name (matching Terraform)
+ECR_REPO_NAME="cicd-pipeline-${ENVIRONMENT}-app-backend"
+
 # Update image repository and tag
-sed -i "s|repository: .*|repository: ${AWS_ECR_REGISTRY}/${PROJECT_NAME}|g" $CONFIG_FILE
+sed -i "s|repository: .*|repository: ${AWS_ECR_REGISTRY}/${ECR_REPO_NAME}|g" $CONFIG_FILE
 sed -i "s|tag: .*|tag: ${IMAGE_TAG}|g" $CONFIG_FILE
 
 echo "✅ Updated values file: $CONFIG_FILE"

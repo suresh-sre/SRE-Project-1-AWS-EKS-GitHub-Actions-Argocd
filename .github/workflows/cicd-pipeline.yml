@@ -165,7 +165,7 @@ jobs:
         id: image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ github.event.repository.name }}
+          ECR_REPOSITORY: cicd-pipeline-${{ github.ref_name }}-app-backend
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG -t $ECR_REGISTRY/$ECR_REPOSITORY:latest .
@@ -175,7 +175,7 @@ jobs:
       - name: Push Docker image to ECR
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ github.event.repository.name }}
+          ECR_REPOSITORY: cicd-pipeline-${{ github.ref_name }}-app-backend
           IMAGE_TAG: ${{ github.sha }}
         run: |
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
@@ -240,7 +240,7 @@ jobs:
       - name: Pull Docker image
         env:
           ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ github.event.repository.name }}
+          ECR_REPOSITORY: cicd-pipeline-${{ github.ref_name }}-app-backend
           IMAGE_TAG: ${{ github.sha }}
         run: docker pull $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
