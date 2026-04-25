@@ -209,8 +209,10 @@ jobs:
 
       - name: Package and push Helm chart
         run: |
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          HELM_VERSION="0.1.0-${SHORT_SHA}"
           cd helm-chart
-          helm package . --version ${{ github.sha }} --app-version ${{ github.sha }}
+          helm package . --version ${HELM_VERSION} --app-version ${{ github.sha }}
           helm push *.tgz oci://${{ env.AWS_ACCOUNT_ID }}.dkr.ecr.${{ env.AWS_DEFAULT_REGION }}.amazonaws.com/helm-charts
 
   # ============================================================
