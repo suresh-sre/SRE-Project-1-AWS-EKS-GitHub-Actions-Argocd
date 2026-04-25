@@ -39,6 +39,7 @@ jobs:
       - name: Update kubeconfig
         run: |
           EKS_CLUSTER_NAME="cicd-pipeline-${{ github.ref_name }}"
+          echo "EKS_CLUSTER_NAME=${EKS_CLUSTER_NAME}" >> $GITHUB_ENV
           aws eks update-kubeconfig --region ${{ env.AWS_DEFAULT_REGION }} --name $EKS_CLUSTER_NAME
 
       - name: Check EKS cluster status
