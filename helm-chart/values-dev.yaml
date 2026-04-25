@@ -4,7 +4,7 @@ environment: dev
 replicaCount: 2
 
 image:
-  repository: 123456789012.dkr.ecr.us-east-1.amazonaws.com/cicd-pipeline-dev-app-backend
+  repository: 471112966640.dkr.ecr.us-east-1.amazonaws.com/SRE-Project-1-AWS-EKS-GitHub-Actions-Argocd
   tag: latest
 
 ingress:
